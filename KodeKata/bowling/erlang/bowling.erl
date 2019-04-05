@@ -1,3 +1,7 @@
+%% Bowling Code Kata implemented in Erlang
+%% By Gunnar Kriik
+%%
+
 -module(bowling).
 -export([score/1]).
 

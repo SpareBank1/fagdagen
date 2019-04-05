@@ -13,3 +13,4 @@ erl
 > eunit:test(tests). %% or tests:test().
 ```
 
+By [Gunnar Kriik](https://github.com/GKR)
