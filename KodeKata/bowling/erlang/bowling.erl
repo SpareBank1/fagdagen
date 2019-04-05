@@ -5,11 +5,7 @@
 -module(bowling).
 -export([score/1]).
 
-to_integer(Number1) -> {Int1, _} = string:to_integer(Number1), Int1.
-to_integer(Number1, Number2) -> 
-  {Int1, _} = string:to_integer(Number1), 
-  {Int2, _} = string:to_integer(Number2), 
-  Int1 + Int2.
+to_integer(Str) -> {Int, _} = string:to_integer(Str), Int.
 
 %% Split string to array. "12" -> ["1", "2"]
 to_array(Frame) -> [[X] || X <- Frame].
@@ -20,7 +16,7 @@ frame_score(["x"]) -> 10;
 frame_score([_, "/"]) -> 10;
 frame_score(["-", Number]) -> to_integer(Number);
 frame_score([Number, "-"]) -> to_integer(Number);
-frame_score([Number1, Number2]) -> to_integer(Number1, Number2).
+frame_score([Number1, Number2]) -> to_integer(Number1) + to_integer(Number2).
 
 %% Calculate spare bonus
 spare_bonus(["-", _]) -> 0;
