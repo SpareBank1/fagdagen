@@ -1,5 +1,8 @@
 # Bowling code kata in Erlang
 
+## Prerequisites
+Install [Erlang](https://www.erlang.org/downloads) on your machine. Then enter the Erlang emulator using the ```erl``` command and enter the commands below to execute the code.
+
 ```
 erl
 > c(bowling).
