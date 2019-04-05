@@ -25,7 +25,8 @@ frame_score([Number1, Number2]) -> to_integer(Number1, Number2).
 %% Calculate spare bonus
 spare_bonus(["-", _]) -> 0;
 spare_bonus(["x"]) -> 10;
-spare_bonus([Number, _]) -> to_integer(Number).
+spare_bonus([Number, _]) -> to_integer(Number);
+spare_bonus([Number]) -> to_integer(Number).
 
 %% Calculate strike bonus
 strike_bonus(["-", "-"], _) -> 0;
