@@ -1,5 +1,7 @@
 # Bowling code kata in C++
 
+Read the problem description [here](http://codingdojo.org/kata/Bowling/).
+
 ## Build
 ```
 mkdir build && cd build
