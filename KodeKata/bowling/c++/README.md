@@ -11,7 +11,7 @@ make
 
 ## Run
 ```
-./kata_tests
+./bowling_kata_tests
 ```
 
 By [Gunnar Kriik](https://github.com/GKR)

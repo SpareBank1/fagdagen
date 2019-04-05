@@ -8,7 +8,7 @@ use_cxx11()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_executable(
-  kata_tests
+  bowling_kata_tests
   tests/test.cpp
   src/bowling_game.cpp
 )
