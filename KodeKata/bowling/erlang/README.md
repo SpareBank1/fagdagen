@@ -1,4 +1,4 @@
-# Bowling code kata in Erlang
+# Bowling Game Code Kata in Erlang
 
 Read the problem description [here](http://codingdojo.org/kata/Bowling/).
 
