@@ -1,1 +1,1 @@
-TODO: Fyll inn informasjon om applikasjonen
+Hvorfor ikke bare la maskinen selv lære seg reglene?
