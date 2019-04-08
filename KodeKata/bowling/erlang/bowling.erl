@@ -32,7 +32,7 @@ strike_bonus([_, "/"], _) -> 10;
 strike_bonus(["-", Number], _) -> to_integer(Number);
 strike_bonus(["x"], [Number, _]) -> to_integer(Number) + 10;
 strike_bonus([Number, "-"], _) -> to_integer(Number);
-strike_bonus([Number1, Number2], _) -> to_integer(Number1, Number2).
+strike_bonus([Number1, Number2], _) -> to_integer(Number1) + to_integer(Number2).
 
 %% Calculate bonus score
 bonus_score([_, "/"], [Frame1|_]) -> spare_bonus(to_array(Frame1));
