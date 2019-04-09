@@ -42,7 +42,8 @@ bonus_score(_, _) -> 0.
   
 %% Calculate base score
 base_score(Frames) -> base_score(Frames, 0, 0).
-base_score([Head|Tail], Acc, Index) when Index < 10 ->
+base_score(_, Acc, 10) -> Acc;
+base_score([Head|Tail], Acc, Index) ->
   Frame = to_array(Head),
   base_score(Tail, Acc + frame_score(Frame) + bonus_score(Frame, Tail), Index + 1);
 base_score(_, Acc, _) -> Acc.
