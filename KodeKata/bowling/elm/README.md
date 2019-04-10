@@ -1,8 +1,5 @@
 # Bowling code kata solved in elm
 
-### Demo
-[Demo](index.html)
-
 #### Prerequisites
 Install elm: https://elm-lang.org/
 
@@ -26,7 +23,7 @@ $ elm repl
 300 : Int
 ```
 
-#### How to build the Demo
+#### How to build the demo
 ```
 $ cd fagdagen/KodeKata/bowling/elm
 $ elm make --output BowlingScoreCard.js src/BowlingScoreCard.elm
@@ -34,3 +31,4 @@ Success!
 $ elm reactor
 Go to <http://localhost:8000> to see your project dashboard.
 ```
+Navigate to http://localhost:8000/index.html
