@@ -1,6 +1,6 @@
 module BowlingScoreCard exposing (..)
 
-import Bowling exposing (bowlingScore, Frame(..), Roll(..), stringToFrames)
+import Bowling exposing (..)
 
 import Browser
 import Html exposing (Html, Attribute, div, ul, li, text, button, input, span, table, tr, td, th, thead, tbody, p)
@@ -10,31 +10,27 @@ import Html.Events exposing (onClick, onInput)
 main =
   Browser.element { init = init, update = update, subscriptions = subscriptions, view = view }
 
-type alias Line =
+type alias ScoreCardRow =
   { player : String
-  , frames : List Frame
-  , score  : Int
+  , line   : Line
   }
 
 type alias Model =
-  { lines : List Line
+  { rows : List ScoreCardRow
   , input : String
   }
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ({ lines =
+  ({ rows =
     [ { player = "player 1"
-      , frames = stringToFrames "X X X X X X X X X X X X"
-      , score = bowlingScore "X X X X X X X X X X X X"
+      , line = stringToLine "X X X X X X X X X X X X"
       }
     , { player = "player 2"
-      , frames = stringToFrames "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-"
-      , score = bowlingScore "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-"
+      , line = stringToLine "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-"
       }
     , { player = "player 3"
-      , frames = stringToFrames "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5"
-      , score = bowlingScore "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5"
+      , line = stringToLine "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5"
       }
     ]
   , input = ""
@@ -46,7 +42,7 @@ type Msg =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model = case msg of
-  Calculate -> ({model | lines = model.lines ++ [ Line "player" (stringToFrames model.input) (bowlingScore model.input) ]}, Cmd.none)
+  Calculate -> ({model | rows = model.rows ++ [ ScoreCardRow "player" (stringToLine model.input) ]}, Cmd.none)
   Change s -> ({ model | input = s }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
@@ -55,42 +51,42 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  div [ style "width" "60%"]
+  div [ class "bowling-score-card" ]
     [ p [] [ text "Enter a full line of bowling rolls. Separate frames with spaces." ]
     , input [ placeholder "line", value model.input, onInput Change ] []
     , button [ onClick Calculate ] [ text "Calculate" ]
-    , scoreCard model.lines
+    , scoreCard model.rows
     ]
 
-scoreCard : List Line -> Html Msg
-scoreCard lines =
-  table [ attribute "border" "1", style "width" "100%", style "text-align" "center"]
+scoreCard : List ScoreCardRow -> Html Msg
+scoreCard rows =
+  table [ class "bowling-score-card" ]
     [ thead []
         [ tr []
-            ([ th []
+            ([ th [ class "bowling-score-card" ]
                 [ text "Player" ]
-            ] ++ (List.map frameHeader (List.range 1 10)) ++ [ th [] [ text "Score" ] ])
+            ] ++ (List.map scoreCardFrameHeader (List.range 1 10)) ++ [ th [ class "bowling-score-card" ] [ text "Score" ] ])
         ]
     , tbody []
-        (List.concatMap frameCells lines)
+        (List.concatMap scoreCardRow rows)
     ]
 
-frameHeader : Int -> Html Msg
-frameHeader n =
+scoreCardFrameHeader : Int -> Html Msg
+scoreCardFrameHeader n =
   let
     span = if n == 10 then "3" else "2"
   in
-    th [ attribute "colspan" span ]
+    th [ class "bowling-score-card", attribute "colspan" span ]
       [ text (String.fromInt n) ]
 
-frameCells : Line -> List (Html Msg)
-frameCells line =
+scoreCardRow : ScoreCardRow -> List (Html Msg)
+scoreCardRow row =
     [ tr []
-      ([ td [ attribute "rowspan" "2" ] [ text line.player ] ] ++
-        (List.indexedMap frameCellRolls line.frames |> List.concatMap identity) ++
-          [ td [ attribute "rowspan" "2" ] [ text (String.fromInt line.score) ] ])
+      ([ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text row.player ] ] ++
+        (List.indexedMap frameCellRolls row.line.frames |> List.concatMap identity) ++
+          [ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text (Maybe.map String.fromInt row.line.score |> Maybe.withDefault "") ] ])
     , tr []
-        (List.indexedMap frameCellScore line.frames)
+        (List.indexedMap frameCellScore row.line.frames)
     ]
 
 frameCellRolls : Int -> Frame -> List (Html Msg)
@@ -98,26 +94,26 @@ frameCellRolls index frame =
   if index < 9 then
     case frame of
       Frame Strike _ _ _ ->
-        [ td []
+        [ td [ class "bowling-score-card roll1" ]
           [ text " " ]
         , td []
           [ text "X" ]
         ]
       Frame roll1 roll2 _ _ ->
-          [ td []
+          [ td [ class "bowling-score-card roll1" ]
             [ text (rollToString roll1) ]
           , td []
-            [ text (Maybe.map rollToString roll2 |> Maybe.withDefault " ") ]
+            [ text (rollToString roll2) ]
           ]
     else
       case frame of
         Frame roll1 roll2 roll3 _ ->
           let
             r1 = rollToString roll1
-            r2 = Maybe.map rollToString roll2 |> Maybe.withDefault " "
+            r2 = rollToString roll2
             r3 = Maybe.map rollToString roll3 |> Maybe.withDefault " "
           in
-            [ td []
+            [ td [ class "bowling-score-card roll1" ]
               [ text r1 ]
             , td []
               [ text r2 ]
@@ -139,5 +135,5 @@ frameCellScore index frame =
   in
     case frame of
       Frame _ _ _ score ->
-         td [ attribute "colspan" (String.fromInt span) ]
+         td [ class "bowling-score-card frame-score", attribute "colspan" (String.fromInt span) ]
             [ text (Maybe.map String.fromInt score |> Maybe.withDefault " ") ]

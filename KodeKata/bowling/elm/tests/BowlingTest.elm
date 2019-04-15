@@ -8,42 +8,48 @@ import Shrink exposing (..)
 import Test exposing (..)
 import Random exposing (..)
 
+type alias BowlingTestCase =
+  { line   : String
+  , score  : Int
+  , frames : List Frame
+  }
+
+bowlingTestCases : List BowlingTestCase
+bowlingTestCases =
+  [ BowlingTestCase "X X X X X X X X X X X X" 300 (List.repeat 10 (Frame Strike Strike (Just Strike) (Just 30)))
+  , BowlingTestCase "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-" 90 (List.repeat 10 (Frame (Pins 9) (Pins 0) Nothing (Just 9)))
+  , BowlingTestCase "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5" 150 (List.repeat 10 (Frame (Pins 5) Spare (Just (Pins 5)) (Just 15)))
+  , BowlingTestCase "81 81 81 81 81 81 81 81 81 81" 90 (List.repeat 10 (Frame (Pins 8) (Pins 1) Nothing (Just 9)))
+  , BowlingTestCase "81 81 81 81 81 81 81 81 X 81" 100 (List.repeat 8 (Frame (Pins 8) (Pins 1) Nothing (Just 9)) ++ [Frame Strike (Pins 8) (Just (Pins 1)) (Just 19)] ++ [Frame (Pins 8) (Pins 1) Nothing (Just 9)])
+  , BowlingTestCase "81 81 81 81 81 81 81 81 81 X 4 4" 99 ((List.repeat 9 (Frame (Pins 8) (Pins 1) Nothing (Just 9))) ++ [Frame Strike (Pins 4) (Just (Pins 4)) (Just 18)])
+  , BowlingTestCase "81 81 81 81 81 81 81 81 81 X X 4" 105 ((List.repeat 9 (Frame (Pins 8) (Pins 1) Nothing (Just 9))) ++ [Frame Strike Strike (Just (Pins 4)) (Just 24)])
+  , BowlingTestCase "81 81 81 81 X 8/ 81 81 81 X X 4" 125 ((List.repeat 4 (Frame (Pins 8) (Pins 1) Nothing (Just 9))) ++ [Frame Strike (Pins 8) (Just Spare) (Just 20)] ++ [Frame (Pins 8) Spare (Just (Pins 8)) (Just 18)] ++ (List.repeat 3 (Frame (Pins 8) (Pins 1) Nothing (Just 9))) ++ [Frame Strike Strike (Just (Pins 4)) (Just 24)])
+  ]
 
 suite : Test
 suite =
-    describe "Bowling score module" ((
-      [ ("X X X X X X X X X X X X", 300)
-      , ("9- 9- 9- 9- 9- 9- 9- 9- 9- 9-", 90)
-      , ("5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5", 150)
-      , ("81 81 81 81 81 81 81 81 81 81", 90)
-      , ("81 81 81 81 81 81 81 81 X 81", 100)
-      , ("81 81 81 81 81 81 81 81 81 X 4 4", 99)
-      , ("81 81 81 81 81 81 81 81 81 X X 4", 105)
-      , ("81 81 81 81 X 8/ 81 81 81 X X 4", 125)
-      ] |> List.map testFun) ++
-        [ describe "Char to Roll"
-            [ fuzz validRollsFuzzer "Chars to Roll" <|
-                \ch -> charToRoll ch |> Expect.ok
-            , fuzz invlidRollsFuzzer "wrong input to roll" <|
-                \ch -> charToRoll ch |> Expect.err
-            ]
-        , describe ("String to rolls")
-          [ test ("all strikes to rolls") <|
-              \_ -> stringToRolls "X X X X X X X X X X X X" |> Expect.equalLists (List.repeat 12 Strike)
-          , test ("all nines and miss to rolls") <|
-            \_ -> stringToRolls "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-" |> Expect.equalLists (List.repeat 10 [Pins 9, Pins 0] |> List.concatMap identity)
-          , test ("all spares to rolls") <|
-            \_ -> stringToRolls "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5" |> Expect.equalLists (((List.repeat 10 [Pins 5, Spare]) |> List.concatMap identity) ++ [Pins 5])
-          ]
-        , describe ("Rolls to Frames")
-          [ test ("all strikes to frames") <|
-             \_ -> stringToRolls "X X X X X X X X X X X X" |> rollsToFrames |> Expect.equalLists (List.repeat 10 (Frame Strike (Just Strike) (Just Strike) (Just 30)))
-          , test ("all nines and miss to frames") <|
-                \_ -> stringToRolls "9- 9- 9- 9- 9- 9- 9- 9- 9- 9-" |> rollsToFrames |> Expect.equalLists (List.repeat 10 (Frame (Pins 9) (Just (Pins 0)) Nothing (Just 9)))
-          , test ("all spares to frames") <|
-             \_ -> stringToRolls "5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/ 5/5" |> rollsToFrames |> Expect.equalLists (List.repeat 10 (Frame (Pins 5) (Just Spare) (Just (Pins 5)) (Just 15)))
-          ]
-        ]
+    describe "Bowling score module" (
+    (List.map testFramesFun bowlingTestCases) ++
+      (List.map testTotalScoreFun bowlingTestCases))
+
+testFramesFun : BowlingTestCase -> Test
+testFramesFun testCase =
+  test ("Frames: " ++ testCase.line) (
+    \_ ->
+      let
+        line = Bowling.stringToLine testCase.line
+      in
+        Expect.equalLists testCase.frames line.frames
+    )
+
+testTotalScoreFun : BowlingTestCase -> Test
+testTotalScoreFun testCase =
+    test ("Score: " ++ testCase.line) (
+      \_ ->
+        let
+          line = Bowling.stringToLine testCase.line
+        in
+          Expect.equal testCase.score (Maybe.withDefault 0 line.score)
       )
 
 rollChars : List Char
@@ -57,10 +63,3 @@ validRollsFuzzer = List.map Fuzz.constant rollChars |> Fuzz.oneOf
 
 invlidRollsFuzzer : Fuzzer Char
 invlidRollsFuzzer = Fuzz.custom charGenerator Shrink.char
-
-testFun : (String, Int) -> Test
-testFun sample =
-  let
-    (sampleLine, expectedScore) = sample
-  in
-    test ("Line: " ++ sampleLine) (\_ -> Bowling.bowlingScore sampleLine |> Expect.equal expectedScore)

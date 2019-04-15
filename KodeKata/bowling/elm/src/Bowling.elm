@@ -1,15 +1,80 @@
-module Bowling exposing (..)
+module Bowling exposing (Line, Frame(..), Roll(..), stringToLine, charToRoll)
 
-{-| Calculate the total score of a bowling line. Line is given as a String.
-Each frame must be separated by a space. Spaces between last frame and bonus
-rolls are optional.
+type alias Line =
+  { frames : List Frame
+  , score : Maybe Int
+  }
 
-    bowlingScore "12 9- 3/ X X 45 67 89 9- X99"
-
--}
-type Line = Line (List Frame) (Maybe Int)
-type Frame = Frame Roll (Maybe Roll) (Maybe Roll) (Maybe Int)
+type Frame = Frame Roll Roll (Maybe Roll) (Maybe Int)
 type Roll = Strike | Spare | Pins Int
+
+stringToLine : String -> Line
+stringToLine lineStr =
+  let
+    frames = stringToFrames lineStr
+    score = totalScore frames
+  in
+    Line frames score
+
+totalScore : List Frame -> Maybe Int
+totalScore frames =
+  List.foldl (\frame score -> Maybe.map2 (+) (frameScore frame) score) (Just 0) frames
+
+frameScore : Frame -> Maybe Int
+frameScore frame =
+  case frame of
+    Frame _ _ _ score -> score
+
+stringToFrames : String -> List Frame
+stringToFrames str = str
+  |> stringToRolls
+  |> rollsToFrames
+
+stringToRolls : String -> List Roll
+stringToRolls str = str
+  |> String.toList
+  |> List.map (\c -> charToRoll c |> Result.toMaybe)
+  |> List.filterMap identity
+
+rollsToFrames : List Roll -> List Frame
+rollsToFrames rolls =
+  let
+    bonus1 = (List.drop 1 rolls) ++ [Pins 0]
+    bonus2 = (List.drop 2 rolls) ++ [Pins 0, Pins 0]
+  in
+    List.map3 (\r1 r2 r3 -> (r1, r2, r3)) rolls bonus1 bonus2
+    |> recursiveRollsToFrames Nothing
+    |> List.take 10
+
+recursiveRollsToFrames : Maybe Roll -> List (Roll, Roll, Roll) -> List Frame
+recursiveRollsToFrames lastRoll rolls =
+  case (lastRoll, List.head rolls) of
+    (_, Nothing) -> []
+    (Nothing, Just (Strike, r2, r3)) ->
+      [strike r2 r3] ++ (recursiveRollsToFrames Nothing (tail rolls))
+    (Nothing, Just (r1, Spare, r3)) ->
+      [spare r1 r3] ++ (recursiveRollsToFrames Nothing (tail rolls))
+    (Nothing, Just (Pins n, Pins _, _)) ->
+      recursiveRollsToFrames (Just(Pins n)) (tail rolls)
+    (Just (Pins n1), Just (Pins n2, _, _)) ->
+      [pins (Pins n1) (Pins n2)] ++ (recursiveRollsToFrames Nothing (tail rolls))
+    _ -> recursiveRollsToFrames Nothing (tail rolls)
+
+strike : Roll -> Roll -> Frame
+strike bonusRoll1 bonusRoll2 = Frame Strike bonusRoll1 (Just bonusRoll2)
+  (case bonusRoll2 of
+    Spare -> Just 20
+    _ -> Just (10 + (rollValue bonusRoll1) + (rollValue bonusRoll2))
+  )
+
+spare : Roll -> Roll -> Frame
+spare firstRoll bonusRoll = Frame firstRoll Spare (Just bonusRoll) (Just (10 + (rollValue bonusRoll)))
+
+pins : Roll -> Roll -> Frame
+pins firstRoll secondRoll = Frame firstRoll secondRoll Nothing (Just ((rollValue firstRoll) + (rollValue secondRoll)))
+
+tail : List a -> List a
+tail list = List.tail list |> Maybe.withDefault []
 
 charToRoll : Char -> Result String Roll
 charToRoll c =
@@ -30,58 +95,3 @@ rollValue roll = case roll of
   Strike -> 10
   Spare -> 10
   Pins n -> n
-
-stringToFrames : String -> List Frame
-stringToFrames str = rollsToFrames <| stringToRolls str
-
-stringToRolls : String -> List Roll
-stringToRolls str = String.toList str |> List.map (\c -> Result.toMaybe <| charToRoll c) |> List.filterMap identity
-
-rollsToFrames : List Roll -> List Frame
-rollsToFrames rolls =
-  let
-    bonus1 = (List.drop 1 rolls) ++ [Pins 0]
-    bonus2 = (List.drop 2 rolls) ++ [Pins 0, Pins 0]
-  in
-    List.map3 (\r1 r2 r3 -> (r1, r2, r3)) rolls bonus1 bonus2 |> rollsToFrame Nothing |> List.take 10
-
-rollsToFrame : Maybe Roll -> List (Roll, Roll, Roll) -> List Frame
-rollsToFrame lastRoll rolls =
-  case (lastRoll, List.head rolls) of
-    (_, Nothing) -> []
-    (Just (Pins n1), Just (Pins n2, _, _)) -> [Frame (Pins n1) (Just (Pins n2)) Nothing (Just (n1 + n2))] ++ (rollsToFrame Nothing (tail rolls))
-    (Nothing, Just (Strike, r2, r3)) -> [Frame Strike (Just r2) (Just r3) (Just (10 + (rollValue r2) + (rollValue r3)))] ++ (rollsToFrame Nothing (tail rolls))
-    (Nothing, Just (r1, Spare, r3)) -> [Frame r1 (Just Spare) (Just r3) (Just (10 + (rollValue r3)))] ++ (rollsToFrame Nothing (tail rolls))
-    (Nothing, Just (Pins n, Pins _, _)) -> rollsToFrame (Just(Pins n)) (tail rolls)
-    _ -> rollsToFrame Nothing (tail rolls)
-
-tail : List a -> List a
-tail list = List.tail list |> Maybe.withDefault []
-
-bowlingScore : String -> Int
-bowlingScore line = bowlingFrameScores line |> List.sum
-
-bowlingFrameScores : String -> List Int
-bowlingFrameScores line =
-  let
-    frameRolls = String.split " " line |> List.take 10 |>
-      List.concatMap (\s -> String.split "" <| if (String.left 1 s) == "X" then "X" else String.left 2 s)
-    allRolls = String.replace " " "" line |> String.split ""
-    firstBonus = (List.drop 1 allRolls) ++ ["-"]
-    secondBonus = (List.drop 2 allRolls) ++ ["-", "-"]
-  in
-    List.map3 score frameRolls firstBonus secondBonus
-
-score : String -> String -> String -> Int
-score r1 r2 r3 = case (r1, r2, r3) of
-  ("X", _, "/") -> 20
-  ("X", s2, s3) -> 10 + (pins s2) + (pins s3)
-  (_, "/", s3) -> 10 + (pins s3)
-  (s1, _, _) -> pins(s1)
-
-pins : String -> Int
-pins str = case str of
-  "X" -> 10
-  "/" -> 0 -- Spare is handled in score function, ignore it here
-  "-" -> 0
-  s   -> String.toInt s |> Maybe.withDefault 0 -- Ignore illegal input
