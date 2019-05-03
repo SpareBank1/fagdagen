@@ -12,7 +12,7 @@ main =
 
 type alias ScoreCardRow =
   { player : String
-  , line   : Line
+  , line   : Result String Line
   }
 
 type alias Model =
@@ -80,14 +80,25 @@ scoreCardFrameHeader n =
       [ text (String.fromInt n) ]
 
 scoreCardRow : ScoreCardRow -> List (Html Msg)
-scoreCardRow row =
+scoreCardRow row = case row.line of
+  Err m ->
     [ tr []
-      ([ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text row.player ] ] ++
-        (List.indexedMap frameCellRolls row.line.frames |> List.concatMap identity) ++
-          [ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text (Maybe.map String.fromInt row.line.score |> Maybe.withDefault "") ] ])
-    , tr []
-        (List.indexedMap frameCellScore row.line.frames)
+      [ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text row.player ]
+      , td [ attribute "rowspan" "2", attribute "colspan" "22"] [ text ("Error: " ++ m) ]
+      ]
+    , tr [] []
     ]
+  Ok line -> scoreCardRowOk row.player line
+
+scoreCardRowOk : String -> Line -> List (Html Msg)
+scoreCardRowOk player line =
+  [ tr []
+    ([ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text player ] ] ++
+       (List.indexedMap frameCellRolls line.frames |> List.concatMap identity) ++
+        [ td [ class "bowling-score-card", attribute "rowspan" "2" ] [ text (Maybe.map String.fromInt line.score |> Maybe.withDefault "") ] ])
+  , tr []
+      (List.indexedMap frameCellScore line.frames)
+  ]
 
 frameCellRolls : Int -> Frame -> List (Html Msg)
 frameCellRolls index frame =

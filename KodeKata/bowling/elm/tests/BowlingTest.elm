@@ -7,6 +7,8 @@ import Fuzz exposing (Fuzzer, frequency, char)
 import Shrink exposing (..)
 import Test exposing (..)
 import Random exposing (..)
+import Random.Extra
+import Random.Char
 
 type alias BowlingTestCase =
   { line   : String
@@ -29,37 +31,73 @@ bowlingTestCases =
 suite : Test
 suite =
     describe "Bowling score module" (
-    (List.map testFramesFun bowlingTestCases) ++
-      (List.map testTotalScoreFun bowlingTestCases))
+      (List.map testFramesFun bowlingTestCases)
+      ++ (List.map testTotalScoreFun bowlingTestCases)
+      ++ [
+        fuzz validLineFuzzer "Valid lines" <|
+          \randomLine ->
+            randomLine
+              |> Bowling.stringToLine
+              |> Expect.ok
+      ]
+    )
 
 testFramesFun : BowlingTestCase -> Test
 testFramesFun testCase =
   test ("Frames: " ++ testCase.line) (
     \_ ->
-      let
-        line = Bowling.stringToLine testCase.line
-      in
-        Expect.equalLists testCase.frames line.frames
-    )
+      case Bowling.stringToLine testCase.line of
+        Err s -> Expect.fail s
+        Ok line -> Expect.equalLists testCase.frames line.frames
+  )
 
 testTotalScoreFun : BowlingTestCase -> Test
 testTotalScoreFun testCase =
     test ("Score: " ++ testCase.line) (
       \_ ->
-        let
-          line = Bowling.stringToLine testCase.line
-        in
-          Expect.equal testCase.score (Maybe.withDefault 0 line.score)
-      )
+        case Bowling.stringToLine testCase.line of
+          Err s -> Expect.fail s
+          Ok line -> Expect.equal testCase.score (Maybe.withDefault 0 line.score)
+    )
 
-rollChars : List Char
-rollChars = ['X', '/', '-', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+firstRollGenerator : Generator Char
+firstRollGenerator = Random.uniform 'X' ['-', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-charGenerator : Generator Char
-charGenerator = (Random.int 0 0x10FFFF |> Random.map Char.fromCode)
+secondRollChars : Char -> List Char
+secondRollChars char =
+  let
+    rolls = ['9', '8', '7', '6', '5', '4', '3', '2', '1', '-']
+  in
+    case char of
+      '-' -> rolls
+      _ -> char
+        |> String.fromChar
+        |> String.toInt
+        |> Maybe.map (\i -> List.drop i rolls)
+        |> Maybe.withDefault []
 
-validRollsFuzzer : Fuzzer Char
-validRollsFuzzer = List.map Fuzz.constant rollChars |> Fuzz.oneOf
+secondRollGenerator : Generator Char -> Generator Char
+secondRollGenerator firstRoll = firstRoll |> Random.andThen (\r1 -> Random.uniform '/' (secondRollChars r1))
 
-invlidRollsFuzzer : Fuzzer Char
-invlidRollsFuzzer = Fuzz.custom charGenerator Shrink.char
+--invalidRollCharsGenerator : Generator Char
+--invalidRollCharsGenerator = Random.Char.unicode |> Random.Extra.filter (\c -> not (List.member c rollChars))
+
+validFrameGenerator : Generator String
+validFrameGenerator =
+  let
+    roll1 = firstRollGenerator
+    roll2 = secondRollGenerator roll1
+  in
+    Random.map2 (\r1 r2 -> (String.fromChar r1) ++ (String.fromChar r2)) roll1 roll2
+
+validFrameFuzzer : Fuzzer String
+validFrameFuzzer =
+  Fuzz.custom validFrameGenerator Shrink.noShrink
+
+validLineFuzzer : Fuzzer String
+validLineFuzzer =
+  let
+    gen = Random.list 10 validFrameGenerator
+      |> Random.map (\l -> List.foldr (++) "" l)
+  in
+    Fuzz.custom gen Shrink.string

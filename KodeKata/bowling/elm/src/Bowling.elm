@@ -8,33 +8,23 @@ type alias Line =
 type Frame = Frame Roll Roll (Maybe Roll) (Maybe Int)
 type Roll = Strike | Spare | Pins Int
 
-stringToLine : String -> Line
-stringToLine lineStr =
-  let
-    frames = stringToFrames lineStr
-    score = totalScore frames
-  in
-    Line frames score
+stringToLine : String -> Result String Line
+stringToLine =
+  stringToFrames >> Result.map (\frames -> Line frames (totalScore frames))
 
 totalScore : List Frame -> Maybe Int
-totalScore frames =
-  List.foldl (\frame score -> Maybe.map2 (+) (frameScore frame) score) (Just 0) frames
+totalScore = List.foldl (\frame score -> Maybe.map2 (+) (frameScore frame) score) (Just 0)
 
 frameScore : Frame -> Maybe Int
 frameScore frame =
   case frame of
     Frame _ _ _ score -> score
 
-stringToFrames : String -> List Frame
-stringToFrames str = str
-  |> stringToRolls
-  |> rollsToFrames
+stringToFrames : String -> Result String (List Frame)
+stringToFrames = stringToRolls >> Result.map rollsToFrames
 
-stringToRolls : String -> List Roll
-stringToRolls str = str
-  |> String.toList
-  |> List.map (\c -> charToRoll c |> Result.toMaybe)
-  |> List.filterMap identity
+stringToRolls : String -> Result String (List Roll)
+stringToRolls = String.replace " " "" >> String.toList >> List.map charToRoll >> combine
 
 rollsToFrames : List Roll -> List Frame
 rollsToFrames rolls =
@@ -75,6 +65,10 @@ pins firstRoll secondRoll = Frame firstRoll secondRoll Nothing (Just ((rollValue
 
 tail : List a -> List a
 tail list = List.tail list |> Maybe.withDefault []
+
+combine : List (Result x a) -> Result x (List a)
+combine =
+    List.foldr (Result.map2 (::)) (Ok [])
 
 charToRoll : Char -> Result String Roll
 charToRoll c =
