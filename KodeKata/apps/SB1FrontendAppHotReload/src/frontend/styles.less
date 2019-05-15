@@ -1,0 +1,68 @@
+@import "~@sb1/ffe-core/less/ffe.less";
+@import "~@sb1/ffe-form/less/form.less";
+@import "~@sb1/ffe-buttons/less/buttons.less";
+@import '~@sb1/ffe-webfonts/fonts.less';
+@import '~@sb1/ffe-grid/less/ffe-grid.less';
+
+@fonts-url: '~@sb1/ffe-webfonts/fonts';
+@ffe-grey-dark-blue--dark: red;
+
+@base-url: "/sb1";
+
+html {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  font-family: "MuseoSans-500", Arial, sans-serif;
+  font-size: 16px;
+}
+
+body {
+  line-height: 23px;
+  color: @ffe-black;
+  height: 100%;
+}
+
+header {
+  .logo {
+    margin: 10px 20px;
+  }
+}
+
+.container {
+  width: 90%;
+  margin: 0 auto;
+}
+
+.row {
+  position: relative;
+  width: 100%;
+}
+
+.col {
+  // ...
+}
+
+// Small devices
+@media only screen and (min-width: 576px) {
+
+}
+
+// Medium devices
+@media only screen and (min-width: 768px) {
+  .container {
+    width: 80%;
+  }
+}
+
+// Large devices
+@media only screen and (min-width: 992px) {
+  .container {
+    width: 75%;
+    max-width: 960px;
+  }
+}
+
+// Extra large devices
+@media only screen and (min-width: 1200px) {
+}
